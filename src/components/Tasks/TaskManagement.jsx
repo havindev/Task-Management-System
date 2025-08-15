@@ -23,6 +23,8 @@ function useDebounce(value, delay) {
 }
 
 export default function TaskManagement({ user }) {
+  console.log('🏗️ TaskManagement rendered with user:', user);
+  
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -108,13 +110,15 @@ export default function TaskManagement({ user }) {
   }, [user?.id]);
 
   const loadTasks = async () => {
+    console.log('📋 Loading tasks for user:', user.id);
     setIsLoading(true);
     setError(null);
     try {
       const data = await taskAPI.getAllTasks(user.id);
+      console.log('✅ Tasks loaded:', data.length, 'tasks');
       setTasks(data);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error loading tasks:', err);
       setError(err.message || 'Không thể tải danh sách tasks.');
     } finally {
       setIsLoading(false);
