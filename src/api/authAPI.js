@@ -1,9 +1,9 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin + '/api';
 
 export const authAPI = {
   login: async (credentials) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users?username=${credentials.username}`);
+      const response = await fetch(`${API_BASE_URL}/users`);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -53,8 +53,10 @@ export const authAPI = {
   verifySession: async (userId, token) => {
     try {
 
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`);
-      return response.ok;
+      const response = await fetch(`${API_BASE_URL}/users`);
+      if (!response.ok) return false;
+      const users = await response.json();
+      return users.some(user => user.id === userId);
     } catch (error) {
       console.error('Session verification error:', error);
       return false;
