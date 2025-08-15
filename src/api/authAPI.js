@@ -6,8 +6,17 @@ initializeMockData();
 export const authAPI = {
   login: async (credentials) => {
     try {
+      console.log('🔄 Login function started');
+      console.log('🔍 Credentials:', credentials);
+      
+      // Ensure localStorage is available
+      if (typeof localStorage === 'undefined') {
+        throw new Error('localStorage is not available');
+      }
+      
       console.log('🔄 Using localStorage for auth');
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      console.log('👥 Users found:', users.length);
       
       const foundUser = users.find(
         user =>
