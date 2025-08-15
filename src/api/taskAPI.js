@@ -1,1 +1,287 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';\n\n// Task API functions\nexport const taskAPI = {\n  // Get all tasks for a user\n  getAllTasks: async (userId) => {\n    try {\n      // Lấy tất cả tasks trước\n      const response = await fetch(`${API_BASE_URL}/tasks`);\n      \n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      const allTasks = await response.json();\n      \n      // Filter tasks thuộc về user này (hoặc tasks không có userId - backward compatibility)\n      const userTasks = allTasks.filter(task => \n        !task.userId || task.userId == userId || task.userId === String(userId)\n      );\n      \n      // Sort by creation date (newest first) by default\n      return userTasks.sort((a, b) => {\n        const dateA = new Date(a.createdAt || a.updatedAt || 0);\n        const dateB = new Date(b.createdAt || b.updatedAt || 0);\n        return dateB - dateA;\n      });\n    } catch (error) {\n      console.error('Get all tasks error:', error);\n      throw new Error('Không thể tải danh sách tasks. Vui lòng kiểm tra kết nối mạng.');\n    }\n  },\n\n  // Get single task by ID\n  getTaskById: async (taskId) => {\n    try {\n      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);\n      \n      if (!response.ok) {\n        if (response.status === 404) {\n          throw new Error('Task không tồn tại');\n        }\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      return await response.json();\n    } catch (error) {\n      console.error('Get task by ID error:', error);\n      throw error;\n    }\n  },\n\n  // Create new task\n  createTask: async (taskData, userId) => {\n    try {\n      const newTask = {\n        ...taskData,\n        userId: userId,\n        createdAt: new Date().toISOString(),\n        updatedAt: new Date().toISOString(),\n      };\n\n      const response = await fetch(`${API_BASE_URL}/tasks`, {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify(newTask),\n      });\n\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      const createdTask = await response.json();\n      return createdTask;\n    } catch (error) {\n      console.error('Create task error:', error);\n      throw new Error('Không thể tạo task. Vui lòng thử lại.');\n    }\n  },\n\n  // Update existing task\n  updateTask: async (taskId, taskData) => {\n    try {\n      if (!taskId) {\n        throw new Error('Task ID is required');\n      }\n\n      const updatedTask = {\n        ...taskData,\n        updatedAt: new Date().toISOString(),\n      };\n\n      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {\n        method: 'PUT',\n        headers: {\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify(updatedTask),\n      });\n\n      if (!response.ok) {\n        if (response.status === 404) {\n          throw new Error('Task không tồn tại');\n        }\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      return await response.json();\n    } catch (error) {\n      console.error('Update task error:', error);\n      throw new Error('Không thể cập nhật task. Vui lòng thử lại.');\n    }\n  },\n\n  // Delete task\n  deleteTask: async (taskId) => {\n    try {\n      if (!taskId) {\n        throw new Error('Task ID is required');\n      }\n\n      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {\n        method: 'DELETE',\n      });\n\n      if (!response.ok) {\n        if (response.status === 404) {\n          throw new Error('Task không tồn tại');\n        }\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      return { success: true, id: taskId };\n    } catch (error) {\n      console.error('Delete task error:', error);\n      throw new Error('Không thể xóa task. Vui lòng thử lại.');\n    }\n  },\n\n  // Update task status only\n  updateTaskStatus: async (taskId, status) => {\n    try {\n      // Get current task first\n      const currentTask = await taskAPI.getTaskById(taskId);\n      \n      // Update only status and updatedAt\n      const updatedTask = {\n        ...currentTask,\n        status: status,\n        updatedAt: new Date().toISOString(),\n      };\n\n      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {\n        method: 'PUT',\n        headers: {\n          'Content-Type': 'application/json',\n        },\n        body: JSON.stringify(updatedTask),\n      });\n\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      return await response.json();\n    } catch (error) {\n      console.error('Update task status error:', error);\n      throw new Error('Không thể cập nhật trạng thái task.');\n    }\n  },\n\n  // Get tasks by status\n  getTasksByStatus: async (userId, status) => {\n    try {\n      const allTasks = await taskAPI.getAllTasks(userId);\n      return allTasks.filter(task => task.status === status);\n    } catch (error) {\n      console.error('Get tasks by status error:', error);\n      throw error;\n    }\n  },\n\n  // Get tasks by priority\n  getTasksByPriority: async (userId, priority) => {\n    try {\n      const allTasks = await taskAPI.getAllTasks(userId);\n      return allTasks.filter(task => task.priority === priority);\n    } catch (error) {\n      console.error('Get tasks by priority error:', error);\n      throw error;\n    }\n  },\n\n  // Search tasks\n  searchTasks: async (userId, searchTerm) => {\n    try {\n      const allTasks = await taskAPI.getAllTasks(userId);\n      \n      if (!searchTerm) return allTasks;\n\n      const searchLower = searchTerm.toLowerCase();\n      return allTasks.filter(task =>\n        task.title.toLowerCase().includes(searchLower) ||\n        task.description?.toLowerCase().includes(searchLower)\n      );\n    } catch (error) {\n      console.error('Search tasks error:', error);\n      throw error;\n    }\n  },\n\n  // Get task statistics\n  getTaskStatistics: async (userId) => {\n    try {\n      const tasks = await taskAPI.getAllTasks(userId);\n      \n      const stats = {\n        total: tasks.length,\n        todo: tasks.filter(t => t.status === 'todo').length,\n        inProgress: tasks.filter(t => t.status === 'in-progress').length,\n        completed: tasks.filter(t => t.status === 'completed').length,\n        overdue: tasks.filter(t => {\n          const dueDate = new Date(t.dueDate);\n          const today = new Date();\n          return dueDate < today && t.status !== 'completed';\n        }).length,\n        completionRate: tasks.length > 0 \n          ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)\n          : 0\n      };\n\n      return stats;\n    } catch (error) {\n      console.error('Get task statistics error:', error);\n      throw error;\n    }\n  },\n\n  // Bulk update tasks\n  bulkUpdateTasks: async (taskIds, updateData) => {\n    try {\n      const promises = taskIds.map(taskId => {\n        return fetch(`${API_BASE_URL}/tasks/${taskId}`, {\n          method: 'PATCH',\n          headers: {\n            'Content-Type': 'application/json',\n          },\n          body: JSON.stringify({\n            ...updateData,\n            updatedAt: new Date().toISOString(),\n          }),\n        });\n      });\n\n      const responses = await Promise.all(promises);\n      \n      // Check if all requests were successful\n      const failed = responses.filter(r => !r.ok);\n      if (failed.length > 0) {\n        throw new Error(`${failed.length} tasks failed to update`);\n      }\n\n      return { success: true, updated: taskIds.length };\n    } catch (error) {\n      console.error('Bulk update tasks error:', error);\n      throw error;\n    }\n  }\n};\n\n// Export individual functions for convenience\nexport const {\n  getAllTasks,\n  getTaskById,\n  createTask,\n  updateTask,\n  deleteTask,\n  updateTaskStatus,\n  getTasksByStatus,\n  getTasksByPriority,\n  searchTasks,\n  getTaskStatistics,\n  bulkUpdateTasks\n} = taskAPI;\n\nexport default taskAPI;\n
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
+
+export const taskAPI = {
+
+  getAllTasks: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const tasks = await response.json();
+
+
+      return tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } catch (error) {
+      console.error('Get all tasks error:', error);
+      throw new Error('Không thể tải danh sách tasks. Vui lòng kiểm tra kết nối mạng.');
+    }
+  },
+
+
+  getTaskById: async (taskId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Task không tồn tại');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get task by ID error:', error);
+      throw error;
+    }
+  },
+
+
+  createTask: async (taskData, userId) => {
+    try {
+      const newTask = {
+        ...taskData,
+        userId: userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTask),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const createdTask = await response.json();
+      return createdTask;
+    } catch (error) {
+      console.error('Create task error:', error);
+      throw new Error('Không thể tạo task. Vui lòng thử lại.');
+    }
+  },
+
+
+  updateTask: async (taskId, taskData) => {
+    try {
+      if (!taskId) {
+        throw new Error('Task ID is required');
+      }
+
+      const updatedTask = {
+        ...taskData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedTask),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Task không tồn tại');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update task error:', error);
+      throw new Error('Không thể cập nhật task. Vui lòng thử lại.');
+    }
+  },
+
+
+  deleteTask: async (taskId) => {
+    try {
+      if (!taskId) {
+        throw new Error('Task ID is required');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Task không tồn tại');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return { success: true, id: taskId };
+    } catch (error) {
+      console.error('Delete task error:', error);
+      throw new Error('Không thể xóa task. Vui lòng thử lại.');
+    }
+  },
+
+
+  updateTaskStatus: async (taskId, status) => {
+    try {
+
+      const currentTask = await taskAPI.getTaskById(taskId);
+
+
+      const updatedTask = {
+        ...currentTask,
+        status: status,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedTask),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update task status error:', error);
+      throw new Error('Không thể cập nhật trạng thái task.');
+    }
+  },
+
+
+  getTasksByStatus: async (userId, status) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}&status=${status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get tasks by status error:', error);
+      throw error;
+    }
+  },
+
+
+  getTasksByPriority: async (userId, priority) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}&priority=${priority}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get tasks by priority error:', error);
+      throw error;
+    }
+  },
+
+  searchTasks: async (userId, searchTerm) => {
+    try {
+      const allTasks = await taskAPI.getAllTasks(userId);
+
+      if (!searchTerm) return allTasks;
+
+      const searchLower = searchTerm.toLowerCase();
+      return allTasks.filter(task =>
+        task.title.toLowerCase().includes(searchLower) ||
+        task.description?.toLowerCase().includes(searchLower)
+      );
+    } catch (error) {
+      console.error('Search tasks error:', error);
+      throw error;
+    }
+  },
+
+
+  getTaskStatistics: async (userId) => {
+    try {
+      const tasks = await taskAPI.getAllTasks(userId);
+
+      const stats = {
+        total: tasks.length,
+        todo: tasks.filter(t => t.status === 'todo').length,
+        inProgress: tasks.filter(t => t.status === 'in-progress').length,
+        completed: tasks.filter(t => t.status === 'completed').length,
+        overdue: tasks.filter(t => {
+          const dueDate = new Date(t.dueDate);
+          const today = new Date();
+          return dueDate < today && t.status !== 'completed';
+        }).length,
+        completionRate: tasks.length > 0
+          ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)
+          : 0
+      };
+
+      return stats;
+    } catch (error) {
+      console.error('Get task statistics error:', error);
+      throw error;
+    }
+  },
+
+
+  bulkUpdateTasks: async (taskIds, updateData) => {
+    try {
+      const promises = taskIds.map(taskId => {
+        return fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...updateData,
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+      });
+
+      const responses = await Promise.all(promises);
+
+
+      const failed = responses.filter(r => !r.ok);
+      if (failed.length > 0) {
+        throw new Error(`${failed.length} tasks failed to update`);
+      }
+
+      return { success: true, updated: taskIds.length };
+    } catch (error) {
+      console.error('Bulk update tasks error:', error);
+      throw error;
+    }
+  }
+};
+
+
+export const {
+  getAllTasks,
+  getTaskById,
+  createTask,
+  updateTask,
+  deleteTask,
+  updateTaskStatus,
+  getTasksByStatus,
+  getTasksByPriority,
+  searchTasks,
+  getTaskStatistics,
+  bulkUpdateTasks
+} = taskAPI;
+
+export default taskAPI;
