@@ -1,3 +1,4 @@
+// Vercel serverless function
 const tasks = [
   {
     "title": "Môn Data Structure",
@@ -52,47 +53,63 @@ const tasks = [
   }
 ];
 
-export default function handler(req, res) {
+function setCORSHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Cache-Control', 'no-cache');
+}
+
+export default function handler(req, res) {
+  setCORSHeaders(res);
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
-  if (req.method === 'GET') {
-    res.status(200).json(tasks);
-  } else if (req.method === 'POST') {
-    const newTask = {
-      ...req.body,
-      id: String(tasks.length + 1),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    tasks.push(newTask);
-    res.status(201).json(newTask);
-  } else if (req.method === 'PUT') {
-    const { id } = req.query;
-    const taskIndex = tasks.findIndex(task => task.id === id);
-    if (taskIndex !== -1) {
-      tasks[taskIndex] = { ...tasks[taskIndex], ...req.body, updatedAt: new Date().toISOString() };
-      res.status(200).json(tasks[taskIndex]);
-    } else {
-      res.status(404).json({ error: 'Task not found' });
+  try {
+    if (req.method === 'GET') {
+      return res.status(200).json(tasks);
     }
-  } else if (req.method === 'DELETE') {
-    const { id } = req.query;
-    const taskIndex = tasks.findIndex(task => task.id === id);
-    if (taskIndex !== -1) {
-      tasks.splice(taskIndex, 1);
-      res.status(204).end();
-    } else {
-      res.status(404).json({ error: 'Task not found' });
+    
+    if (req.method === 'POST') {
+      const newTask = {
+        ...req.body,
+        id: String(tasks.length + 1),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      tasks.push(newTask);
+      return res.status(201).json(newTask);
     }
-  } else {
-    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    
+    if (req.method === 'PUT') {
+      const { id } = req.query;
+      const taskIndex = tasks.findIndex(task => task.id === id);
+      if (taskIndex !== -1) {
+        tasks[taskIndex] = { ...tasks[taskIndex], ...req.body, updatedAt: new Date().toISOString() };
+        return res.status(200).json(tasks[taskIndex]);
+      } else {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+    }
+    
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      const taskIndex = tasks.findIndex(task => task.id === id);
+      if (taskIndex !== -1) {
+        tasks.splice(taskIndex, 1);
+        return res.status(204).end();
+      } else {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
