@@ -1,15 +1,22 @@
+import { initializeMockData, STORAGE_KEYS } from '../data/mockData';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin + '/api';
+
+// Initialize mock data on import
+initializeMockData();
+
+const shouldUseLocalStorage = () => {
+  // ALWAYS use localStorage - simplified approach
+  console.log('🔄 Using localStorage (forced for reliability)');
+  return true;
+};
 
 export const authAPI = {
   login: async (credentials) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const users = await response.json();
+      console.log('🔄 Using localStorage for auth');
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      
       const foundUser = users.find(
         user =>
           user.username === credentials.username &&
@@ -20,9 +27,7 @@ export const authAPI = {
         throw new Error('Username hoặc password không đúng');
       }
 
-
       const token = `token_${foundUser.id}_${Date.now()}`;
-
 
       return {
         user: {
@@ -33,7 +38,7 @@ export const authAPI = {
         token
       };
     } catch (error) {
-      console.error('Login API error:', error);
+      console.error('Login error:', error);
       throw error;
     }
   },
@@ -52,10 +57,7 @@ export const authAPI = {
 
   verifySession: async (userId, token) => {
     try {
-
-      const response = await fetch(`${API_BASE_URL}/users`);
-      if (!response.ok) return false;
-      const users = await response.json();
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
       return users.some(user => user.id === userId);
     } catch (error) {
       console.error('Session verification error:', error);
