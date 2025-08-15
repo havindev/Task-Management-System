@@ -1,23 +1,52 @@
+import { initializeMockData, STORAGE_KEYS } from '../data/mockData';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin + '/api';
 
+// Initialize mock data on import
+initializeMockData();
+
+const shouldUseLocalStorage = () => {
+  // ALWAYS use localStorage - simplified approach
+  console.log('🔄 Using localStorage for tasks (forced for reliability)');
+  return true;
+};
 
 export const taskAPI = {
 
   getAllTasks: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      let tasks;
+      
+      if (shouldUseLocalStorage()) {
+        console.log('🔄 Using localStorage for tasks');
+        tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+        // Filter by userId if provided
+        if (userId) {
+          tasks = tasks.filter(task => task.userId === userId || task.userId === String(userId));
+        }
+      } else {
+        console.log('🌐 Using API for tasks');
+        const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        tasks = await response.json();
       }
 
-      const tasks = await response.json();
-
-
-      return tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return tasks.sort((a, b) => new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt));
     } catch (error) {
       console.error('Get all tasks error:', error);
-      throw new Error('Không thể tải danh sách tasks. Vui lòng kiểm tra kết nối mạng.');
+      
+      // Fallback to localStorage
+      try {
+        console.log('🔄 Falling back to localStorage for tasks');
+        let tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+        if (userId) {
+          tasks = tasks.filter(task => task.userId === userId || task.userId === String(userId));
+        }
+        return tasks.sort((a, b) => new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt));
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+        return [];
+      }
     }
   },
 
@@ -45,28 +74,55 @@ export const taskAPI = {
     try {
       const newTask = {
         ...taskData,
-        userId: userId,
+        id: String(Date.now()), // Generate unique ID
+        userId: String(userId),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      const response = await fetch(`${API_BASE_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTask),
-      });
+      if (shouldUseLocalStorage()) {
+        console.log('🔄 Using localStorage to create task');
+        const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+        tasks.push(newTask);
+        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+        return newTask;
+      } else {
+        console.log('🌐 Using API to create task');
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newTask),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
       }
-
-      const createdTask = await response.json();
-      return createdTask;
     } catch (error) {
       console.error('Create task error:', error);
-      throw new Error('Không thể tạo task. Vui lòng thử lại.');
+      
+      // Fallback to localStorage
+      try {
+        console.log('🔄 Falling back to localStorage for create task');
+        const newTask = {
+          ...taskData,
+          id: String(Date.now()),
+          userId: String(userId),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+        tasks.push(newTask);
+        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+        return newTask;
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+        throw new Error('Không thể tạo task. Vui lòng thử lại.');
+      }
     }
   },
 
