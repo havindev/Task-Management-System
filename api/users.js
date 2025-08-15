@@ -1,3 +1,4 @@
+// Vercel serverless function
 const users = [
   {
     "id": "1",
@@ -22,31 +23,43 @@ const users = [
   }
 ];
 
-export default function handler(req, res) {
+function setCORSHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Cache-Control', 'no-cache');
+}
+
+export default function handler(req, res) {
+  setCORSHeaders(res);
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
-  if (req.method === 'GET') {
-    res.status(200).json(users);
-  } else if (req.method === 'POST') {
-    const { username, password, email } = req.body;
-    const newUser = {
-      id: String(users.length + 1),
-      username,
-      password,
-      email,
-      createdAt: new Date().toISOString()
-    };
-    users.push(newUser);
-    res.status(201).json(newUser);
-  } else {
-    res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+  try {
+    if (req.method === 'GET') {
+      return res.status(200).json(users);
+    } 
+    
+    if (req.method === 'POST') {
+      const { username, password, email } = req.body;
+      const newUser = {
+        id: String(users.length + 1),
+        username,
+        password,
+        email,
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      return res.status(201).json(newUser);
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'OPTIONS']);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
