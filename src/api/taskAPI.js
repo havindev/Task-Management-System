@@ -1,183 +1,104 @@
 import { initializeMockData, STORAGE_KEYS } from '../data/mockData';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin + '/api';
-
 // Initialize mock data on import
 initializeMockData();
 
-const shouldUseLocalStorage = () => {
-  // ALWAYS use localStorage - simplified approach
-  console.log('🔄 Using localStorage for tasks (forced for reliability)');
-  return true;
-};
-
 export const taskAPI = {
-
   getAllTasks: async (userId) => {
     try {
-      let tasks;
+      console.log('🔄 Using localStorage for tasks');
+      let tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       
-      if (shouldUseLocalStorage()) {
-        console.log('🔄 Using localStorage for tasks');
-        tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-        // Filter by userId if provided
-        if (userId) {
-          tasks = tasks.filter(task => task.userId === userId || task.userId === String(userId));
-        }
-      } else {
-        console.log('🌐 Using API for tasks');
-        const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        tasks = await response.json();
+      // Filter by userId if provided
+      if (userId) {
+        tasks = tasks.filter(task => task.userId === userId || task.userId === String(userId));
       }
 
       return tasks.sort((a, b) => new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt));
     } catch (error) {
       console.error('Get all tasks error:', error);
-      
-      // Fallback to localStorage
-      try {
-        console.log('🔄 Falling back to localStorage for tasks');
-        let tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-        if (userId) {
-          tasks = tasks.filter(task => task.userId === userId || task.userId === String(userId));
-        }
-        return tasks.sort((a, b) => new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt));
-      } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
-        return [];
-      }
+      return [];
     }
   },
 
-
   getTaskById: async (taskId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Task không tồn tại');
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+      const task = tasks.find(t => t.id === taskId);
+      
+      if (!task) {
+        throw new Error('Task không tồn tại');
       }
 
-      return await response.json();
+      return task;
     } catch (error) {
       console.error('Get task by ID error:', error);
       throw error;
     }
   },
 
-
   createTask: async (taskData, userId) => {
     try {
+      console.log('🔄 Creating task in localStorage');
+      const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+      
       const newTask = {
         ...taskData,
-        id: String(Date.now()), // Generate unique ID
+        id: String(Date.now()),
         userId: String(userId),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      if (shouldUseLocalStorage()) {
-        console.log('🔄 Using localStorage to create task');
-        const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-        tasks.push(newTask);
-        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-        return newTask;
-      } else {
-        console.log('🌐 Using API to create task');
-        const response = await fetch(`${API_BASE_URL}/tasks`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newTask),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json();
-      }
+      tasks.push(newTask);
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+      
+      return newTask;
     } catch (error) {
       console.error('Create task error:', error);
-      
-      // Fallback to localStorage
-      try {
-        console.log('🔄 Falling back to localStorage for create task');
-        const newTask = {
-          ...taskData,
-          id: String(Date.now()),
-          userId: String(userId),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-        tasks.push(newTask);
-        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-        return newTask;
-      } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
-        throw new Error('Không thể tạo task. Vui lòng thử lại.');
-      }
+      throw new Error('Không thể tạo task. Vui lòng thử lại.');
     }
   },
 
-
   updateTask: async (taskId, taskData) => {
     try {
-      if (!taskId) {
-        throw new Error('Task ID is required');
+      console.log('🔄 Updating task in localStorage');
+      const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+      const taskIndex = tasks.findIndex(task => task.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task không tồn tại');
       }
 
       const updatedTask = {
+        ...tasks[taskIndex],
         ...taskData,
         updatedAt: new Date().toISOString(),
       };
 
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedTask),
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Task không tồn tại');
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
+      tasks[taskIndex] = updatedTask;
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+      
+      return updatedTask;
     } catch (error) {
       console.error('Update task error:', error);
       throw new Error('Không thể cập nhật task. Vui lòng thử lại.');
     }
   },
 
-
   deleteTask: async (taskId) => {
     try {
-      if (!taskId) {
-        throw new Error('Task ID is required');
+      console.log('🔄 Deleting task from localStorage');
+      const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+      const taskIndex = tasks.findIndex(task => task.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task không tồn tại');
       }
 
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Task không tồn tại');
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
+      tasks.splice(taskIndex, 1);
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+      
       return { success: true, id: taskId };
     } catch (error) {
       console.error('Delete task error:', error);
@@ -185,64 +106,29 @@ export const taskAPI = {
     }
   },
 
-
   updateTaskStatus: async (taskId, status) => {
     try {
-
-      const currentTask = await taskAPI.getTaskById(taskId);
-
-
-      const updatedTask = {
-        ...currentTask,
-        status: status,
-        updatedAt: new Date().toISOString(),
-      };
-
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedTask),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
+      return await taskAPI.updateTask(taskId, { status });
     } catch (error) {
       console.error('Update task status error:', error);
       throw new Error('Không thể cập nhật trạng thái task.');
     }
   },
 
-
   getTasksByStatus: async (userId, status) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}&status=${status}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
+      const allTasks = await taskAPI.getAllTasks(userId);
+      return allTasks.filter(task => task.status === status);
     } catch (error) {
       console.error('Get tasks by status error:', error);
       throw error;
     }
   },
 
-
   getTasksByPriority: async (userId, priority) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tasks?userId=${userId}&priority=${priority}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
+      const allTasks = await taskAPI.getAllTasks(userId);
+      return allTasks.filter(task => task.priority === priority);
     } catch (error) {
       console.error('Get tasks by priority error:', error);
       throw error;
@@ -265,7 +151,6 @@ export const taskAPI = {
       throw error;
     }
   },
-
 
   getTaskStatistics: async (userId) => {
     try {
@@ -293,30 +178,10 @@ export const taskAPI = {
     }
   },
 
-
   bulkUpdateTasks: async (taskIds, updateData) => {
     try {
-      const promises = taskIds.map(taskId => {
-        return fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...updateData,
-            updatedAt: new Date().toISOString(),
-          }),
-        });
-      });
-
-      const responses = await Promise.all(promises);
-
-
-      const failed = responses.filter(r => !r.ok);
-      if (failed.length > 0) {
-        throw new Error(`${failed.length} tasks failed to update`);
-      }
-
+      const promises = taskIds.map(taskId => taskAPI.updateTask(taskId, updateData));
+      await Promise.all(promises);
       return { success: true, updated: taskIds.length };
     } catch (error) {
       console.error('Bulk update tasks error:', error);
@@ -324,7 +189,6 @@ export const taskAPI = {
     }
   }
 };
-
 
 export const {
   getAllTasks,
