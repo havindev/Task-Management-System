@@ -21,18 +21,21 @@ function App() {
 
 
   const checkExistingAuth = async () => {
+    console.log('🔍 Starting auth check...');
     setAuthLoading(true);
 
     try {
       const savedUser = localStorage.getItem('taskapp_user');
       const savedToken = localStorage.getItem('taskapp_token');
+      console.log('💾 Saved auth data:', { hasUser: !!savedUser, hasToken: !!savedToken });
 
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
+        console.log('👤 User data:', userData);
 
-        // Timeout after 5 seconds
+        // Timeout after 3 seconds for faster loading
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 5000)
+          setTimeout(() => reject(new Error('Timeout')), 3000)
         );
 
         const isValidSession = await Promise.race([
@@ -40,17 +43,23 @@ function App() {
           timeoutPromise
         ]);
 
+        console.log('✅ Session valid:', isValidSession);
+
         if (isValidSession) {
           setUser(userData);
           setIsLoggedIn(true);
         } else {
+          console.log('❌ Session invalid, clearing auth');
           clearAuthData();
         }
+      } else {
+        console.log('🚫 No saved auth data');
       }
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error('❗ Auth check error:', error);
       clearAuthData();
     } finally {
+      console.log('✨ Auth check completed');
       setAuthLoading(false);
     }
   };
