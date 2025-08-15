@@ -30,20 +30,25 @@ function App() {
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
 
+        // Timeout after 5 seconds
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
 
-        const isValidSession = await verifySession(userData.id, savedToken);
+        const isValidSession = await Promise.race([
+          verifySession(userData.id, savedToken),
+          timeoutPromise
+        ]);
 
         if (isValidSession) {
           setUser(userData);
           setIsLoggedIn(true);
         } else {
-
           clearAuthData();
         }
       }
     } catch (error) {
       console.error('Auth check error:', error);
-
       clearAuthData();
     } finally {
       setAuthLoading(false);
