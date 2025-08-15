@@ -1,15 +1,7 @@
 import { initializeMockData, STORAGE_KEYS } from '../data/mockData';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || window.location.origin + '/api';
-
 // Initialize mock data on import
 initializeMockData();
-
-const shouldUseLocalStorage = () => {
-  // ALWAYS use localStorage - simplified approach
-  console.log('🔄 Using localStorage (forced for reliability)');
-  return true;
-};
 
 export const authAPI = {
   login: async (credentials) => {
@@ -43,17 +35,14 @@ export const authAPI = {
     }
   },
 
-
   logout: async () => {
     try {
-
       return { success: true };
     } catch (error) {
-      console.error('Logout API error:', error);
+      console.error('Logout error:', error);
       throw error;
     }
   },
-
 
   verifySession: async (userId, token) => {
     try {
@@ -65,16 +54,15 @@ export const authAPI = {
     }
   },
 
-
   getUserProfile: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const user = users.find(u => u.id === userId);
+      
+      if (!user) {
+        throw new Error('User not found');
       }
 
-      const user = await response.json();
       return {
         id: user.id,
         username: user.username,
@@ -87,63 +75,49 @@ export const authAPI = {
     }
   },
 
-
   register: async (userData) => {
     try {
-
-      const existingResponse = await fetch(`${API_BASE_URL}/users?username=${userData.username}`);
-      const existingUsers = await existingResponse.json();
-
-      if (existingUsers.length > 0) {
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      
+      // Check if username exists
+      const existingUser = users.find(u => u.username === userData.username);
+      if (existingUser) {
         throw new Error('Username đã tồn tại');
       }
 
-
-      const emailResponse = await fetch(`${API_BASE_URL}/users?email=${userData.email}`);
-      const existingEmails = await emailResponse.json();
-
-      if (existingEmails.length > 0) {
+      // Check if email exists
+      const existingEmail = users.find(u => u.email === userData.email);
+      if (existingEmail) {
         throw new Error('Email đã tồn tại');
       }
 
-
       const newUser = {
+        id: String(users.length + 1),
         username: userData.username,
         password: userData.password,
         email: userData.email,
         createdAt: new Date().toISOString()
       };
 
-      const response = await fetch(`${API_BASE_URL}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newUser),
-      });
+      users.push(newUser);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const createdUser = await response.json();
-      const token = `token_${createdUser.id}_${Date.now()}`;
+      const token = `token_${newUser.id}_${Date.now()}`;
 
       return {
         user: {
-          id: createdUser.id,
-          username: createdUser.username,
-          email: createdUser.email,
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
         },
         token
       };
     } catch (error) {
-      console.error('Register API error:', error);
+      console.error('Register error:', error);
       throw error;
     }
   }
 };
-
 
 export const { login, logout, verifySession, getUserProfile, register } = authAPI;
 
