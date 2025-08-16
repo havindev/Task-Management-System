@@ -83,42 +83,6 @@ export default function TaskList({
   }
 
 
-  const groupTasksByStatus = tasks => {
-    return tasks.reduce((groups, task) => {
-      const status = task.status || 'todo';
-      if (!groups[status]) {
-        groups[status] = [];
-      }
-      groups[status].push(task);
-      return groups;
-    }, {});
-  };
-
-  const groupedTasks = groupTasksByStatus(tasks);
-  const statusOrder = ['todo', 'in-progress', 'completed'];
-  const statusLabels = {
-    todo: 'Todo',
-    'in-progress': 'Đang làm',
-    completed: 'Hoàn thành',
-  };
-
-
-  const sortTasks = tasks => {
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
-
-    return [...tasks].sort((a, b) => {
-
-      const priorityDiff =
-        priorityOrder[b.priority] - priorityOrder[a.priority];
-      if (priorityDiff !== 0) return priorityDiff;
-
-
-      const dateA = new Date(a.dueDate);
-      const dateB = new Date(b.dueDate);
-
-      return dateA - dateB;
-    });
-  };
 
   return (
     <div className="task-list-container">
