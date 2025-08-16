@@ -3,15 +3,15 @@ export const mockUsers = [
   {
     id: "1",
     username: "admin",
-    password: "password123",
+    password: "admin123",
     email: "admin@taskmanager.com",
     createdAt: "2024-01-01T00:00:00.000Z"
   },
   {
     id: "2", 
-    username: "user1",
-    password: "userpass123",
-    email: "user1@taskmanager.com",
+    username: "hieu",
+    password: "hieu123",
+    email: "hieu@taskmanager.com",
     createdAt: "2024-01-02T00:00:00.000Z"
   },
   {
@@ -96,6 +96,6 @@ export const initializeMockData = () => {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mockUsers));
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(mockTasks));
     localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
-    console.log('✅ Mock data initialized in localStorage');
+    // console.log('Mock data initialized'); // debug
   }
 };
