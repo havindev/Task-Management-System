@@ -31,6 +31,9 @@ export default async function handler(req, res) {
   }
 }
 
+// In-memory storage fallback when KV unavailable
+let memoryTasks = null;
+
 // Default tasks from db.json for fallback
 const defaultTasks = [
   {
@@ -96,8 +99,12 @@ async function getTasks(req, res, userId) {
     try {
       tasks = await kv.get('tasks') || [];
     } catch (kvError) {
-      console.warn('KV not available for getTasks, using default tasks:', kvError.message);
-      tasks = defaultTasks;
+      console.warn('KV not available for getTasks, using memory/default tasks:', kvError.message);
+      // Use memory storage or default tasks
+      if (memoryTasks === null) {
+        memoryTasks = [...defaultTasks];
+      }
+      tasks = memoryTasks;
     }
 
     // Filter by userId if provided
@@ -124,12 +131,16 @@ async function createTask(req, res) {
     }
 
     let tasks = [];
+    let useMemory = false;
     try {
       tasks = await kv.get('tasks') || [];
     } catch (kvError) {
-      console.warn('KV not available for createTask:', kvError.message);
-      // Return error if we can't persist
-      return res.status(503).json({ error: 'Dịch vụ lưu trữ tạm thời không khả dụng' });
+      console.warn('KV not available for createTask, using memory storage:', kvError.message);
+      useMemory = true;
+      if (memoryTasks === null) {
+        memoryTasks = [...defaultTasks];
+      }
+      tasks = memoryTasks;
     }
 
     const newTask = {
@@ -145,11 +156,19 @@ async function createTask(req, res) {
     };
 
     tasks.push(newTask);
-    try {
-      await kv.set('tasks', tasks);
-    } catch (kvError) {
-      console.warn('KV not available for saving task:', kvError.message);
-      return res.status(503).json({ error: 'Không thể lưu task' });
+    if (useMemory) {
+      // Save to memory storage
+      memoryTasks = tasks;
+    } else {
+      try {
+        await kv.set('tasks', tasks);
+      } catch (kvError) {
+        console.warn('KV not available for saving task, falling back to memory:', kvError.message);
+        if (memoryTasks === null) {
+          memoryTasks = [...defaultTasks];
+        }
+        memoryTasks.push(newTask);
+      }
     }
 
     res.json(newTask);
@@ -166,11 +185,16 @@ async function updateTask(req, res, taskId) {
     }
 
     let tasks = [];
+    let useMemory = false;
     try {
       tasks = await kv.get('tasks') || [];
     } catch (kvError) {
-      console.warn('KV not available for updateTask:', kvError.message);
-      return res.status(503).json({ error: 'Dịch vụ lưu trữ tạm thời không khả dụng' });
+      console.warn('KV not available for updateTask, using memory:', kvError.message);
+      useMemory = true;
+      if (memoryTasks === null) {
+        memoryTasks = [...defaultTasks];
+      }
+      tasks = memoryTasks;
     }
 
     const taskIndex = tasks.findIndex(task => task.id === taskId);
@@ -186,11 +210,19 @@ async function updateTask(req, res, taskId) {
     };
 
     tasks[taskIndex] = updatedTask;
-    try {
-      await kv.set('tasks', tasks);
-    } catch (kvError) {
-      console.warn('KV not available for saving updated task:', kvError.message);
-      return res.status(503).json({ error: 'Không thể cập nhật task' });
+    if (useMemory) {
+      memoryTasks = tasks;
+    } else {
+      try {
+        await kv.set('tasks', tasks);
+      } catch (kvError) {
+        console.warn('KV not available, saving to memory:', kvError.message);
+        if (memoryTasks === null) {
+          memoryTasks = [...defaultTasks];
+        }
+        const memIndex = memoryTasks.findIndex(t => t.id === taskId);
+        if (memIndex !== -1) memoryTasks[memIndex] = updatedTask;
+      }
     }
 
     res.json(updatedTask);
@@ -207,11 +239,16 @@ async function deleteTask(req, res, taskId) {
     }
 
     let tasks = [];
+    let useMemory = false;
     try {
       tasks = await kv.get('tasks') || [];
     } catch (kvError) {
-      console.warn('KV not available for deleteTask:', kvError.message);
-      return res.status(503).json({ error: 'Dịch vụ lưu trữ tạm thời không khả dụng' });
+      console.warn('KV not available for deleteTask, using memory:', kvError.message);
+      useMemory = true;
+      if (memoryTasks === null) {
+        memoryTasks = [...defaultTasks];
+      }
+      tasks = memoryTasks;
     }
 
     const taskIndex = tasks.findIndex(task => task.id === taskId);
@@ -221,11 +258,19 @@ async function deleteTask(req, res, taskId) {
     }
 
     tasks.splice(taskIndex, 1);
-    try {
-      await kv.set('tasks', tasks);
-    } catch (kvError) {
-      console.warn('KV not available for saving after delete:', kvError.message);
-      return res.status(503).json({ error: 'Không thể xóa task' });
+    if (useMemory) {
+      memoryTasks = tasks;
+    } else {
+      try {
+        await kv.set('tasks', tasks);
+      } catch (kvError) {
+        console.warn('KV not available, deleting from memory:', kvError.message);
+        if (memoryTasks === null) {
+          memoryTasks = [...defaultTasks];
+        }
+        const memIndex = memoryTasks.findIndex(t => t.id === taskId);
+        if (memIndex !== -1) memoryTasks.splice(memIndex, 1);
+      }
     }
 
     res.json({ success: true, id: taskId });
