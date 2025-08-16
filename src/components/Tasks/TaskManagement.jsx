@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import ErrorMessage from '../Common/ErrorMessage';
 import { taskAPI } from '../../api/taskAPI';
+import { MESSAGES } from '../../constants/messages';
 import '../../style/TaskManagement.css';
 
 
+// Hook để debounce search input - tránh call API liên tục
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -22,15 +24,14 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
+// Component chính để quản lý tasks
 export default function TaskManagement({ user }) {
-  console.log('🏗️ TaskManagement rendered with user:', user);
-  
-  const [tasks, setTasks] = useState([]);
+  const [tasks,setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [editingTask,setEditingTask] = useState(null);
   const [isFormLoading, setIsFormLoading] = useState(false);
 
 
@@ -46,7 +47,7 @@ export default function TaskManagement({ user }) {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
 
-  const filteredAndSortedTasks = useMemo(() => {
+  const taskList = useMemo(() => {
     let filtered = tasks;
 
 
@@ -104,26 +105,24 @@ export default function TaskManagement({ user }) {
     setSortOrder('desc');
   };
 
-  useEffect(() => {
-    if (user?.id) loadTasks();
-
-  }, [user?.id]);
-
-  const loadTasks = async () => {
-    console.log('📋 Loading tasks for user:', user.id);
+  const loadTasks = useCallback(async () => {
+    // console.log('Loading tasks for user:', user.id); // debug
     setIsLoading(true);
     setError(null);
     try {
       const data = await taskAPI.getAllTasks(user.id);
-      console.log('✅ Tasks loaded:', data.length, 'tasks');
       setTasks(data);
     } catch (err) {
-      console.error('❌ Error loading tasks:', err);
+      // TODO: Better error handling here
       setError(err.message || 'Không thể tải danh sách tasks.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    if (user?.id) loadTasks();
+  }, [user?.id, loadTasks]);
 
 
   const createTask = async taskData => {
@@ -135,7 +134,6 @@ export default function TaskManagement({ user }) {
       setEditingTask(null);
       taskListRef.current?.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-      console.error(err);
       throw new Error(err.message || 'Không thể tạo task. Vui lòng thử lại.');
     } finally {
       setIsFormLoading(false);
@@ -144,7 +142,7 @@ export default function TaskManagement({ user }) {
 
 
   const updateTask = async taskData => {
-    if (!taskData.id) throw new Error('Thiếu id của task cần cập nhật');
+    if(!taskData.id) throw new Error('Thiếu id của task cần cập nhật');
     setIsFormLoading(true);
     try {
       const updated = await taskAPI.updateTask(taskData.id, taskData);
@@ -152,7 +150,6 @@ export default function TaskManagement({ user }) {
       setShowTaskForm(false);
       setEditingTask(null);
     } catch (err) {
-      console.error(err);
       throw new Error(err.message || 'Không thể cập nhật task. Vui lòng thử lại.');
     } finally {
       setIsFormLoading(false);
@@ -160,13 +157,13 @@ export default function TaskManagement({ user }) {
   };
 
 
+  // Optimistic delete - remove from UI first
   const deleteTask = async taskId => {
     const snapshot = tasks;
     setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
       await taskAPI.deleteTask(taskId);
     } catch (err) {
-      console.error(err);
       setTasks(snapshot);
       setError(err.message || 'Không thể xóa task. Vui lòng thử lại.');
       setTimeout(() => setError(null), 3000);
@@ -174,7 +171,8 @@ export default function TaskManagement({ user }) {
   };
 
   const handleTaskSave = async data => {
-    if (editingTask) await updateTask(data);
+    // console.log('Saving task:', data); // for debugging
+    if(editingTask) await updateTask(data);
     else await createTask(data);
   };
 
@@ -192,7 +190,7 @@ export default function TaskManagement({ user }) {
         <div className="header-title">
           <h2>Xin chào {user.username}! 👋</h2>
           <p className="task-count">
-            {filteredAndSortedTasks.length} / {tasks.length} tasks
+            {taskList.length} / {tasks.length} tasks
             {debouncedSearchTerm && ` • Tìm kiếm: "${debouncedSearchTerm}"`}
           </p>
         </div>
@@ -203,7 +201,7 @@ export default function TaskManagement({ user }) {
             setShowTaskForm(true);
           }}
         >
-          ➕ Tạo Task Mới
+➕ Tạo Task Mới
         </button>
       </div>
 
@@ -214,7 +212,7 @@ export default function TaskManagement({ user }) {
             <span className="search-icon">🔍</span>
             <input
               type="text"
-              placeholder="Tìm kiếm tasks theo tiêu đề hoặc mô tả..."
+placeholder="Tìm kiếm tasks theo tiêu đề hoặc mô tả..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="search-input"
@@ -223,7 +221,7 @@ export default function TaskManagement({ user }) {
               <button
                 className="clear-search-btn"
                 onClick={() => setSearchTerm('')}
-                title="Xóa tìm kiếm"
+title="Xóa tìm kiếm"
               >
                 ✕
               </button>
@@ -235,7 +233,7 @@ export default function TaskManagement({ user }) {
         <div className="filter-controls">
 
           <div className="filter-group">
-            <label>Trạng thái:</label>
+<label>Trạng thái:</label>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
@@ -250,44 +248,44 @@ export default function TaskManagement({ user }) {
 
 
           <div className="filter-group">
-            <label>Độ ưu tiên:</label>
+            <label>{MESSAGES.TASKS.PRIORITY_LABEL}</label>
             <select
               value={priorityFilter}
               onChange={e => setPriorityFilter(e.target.value)}
               className="filter-select"
             >
-              <option value="all">Tất cả</option>
-              <option value="high">Cao</option>
-              <option value="medium">Trung bình</option>
-              <option value="low">Thấp</option>
+              <option value="all">{MESSAGES.TASKS.PRIORITY_ALL}</option>
+              <option value="high">{MESSAGES.TASKS.PRIORITY_HIGH}</option>
+              <option value="medium">{MESSAGES.TASKS.PRIORITY_MEDIUM}</option>
+              <option value="low">{MESSAGES.TASKS.PRIORITY_LOW}</option>
             </select>
           </div>
 
 
           <div className="filter-group">
-            <label>Sắp xếp theo:</label>
+            <label>{MESSAGES.TASKS.SORT_BY_LABEL}</label>
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
               className="filter-select"
             >
-              <option value="createdAt">Ngày tạo</option>
-              <option value="updatedAt">Ngày cập nhật</option>
-              <option value="dueDate">Hạn hoàn thành</option>
-              <option value="priority">Độ ưu tiên</option>
-              <option value="title">Tiêu đề</option>
+              <option value="createdAt">{MESSAGES.TASKS.SORT_CREATED}</option>
+              <option value="updatedAt">{MESSAGES.TASKS.SORT_UPDATED}</option>
+              <option value="dueDate">{MESSAGES.TASKS.SORT_DUE_DATE}</option>
+              <option value="priority">{MESSAGES.TASKS.SORT_PRIORITY}</option>
+              <option value="title">{MESSAGES.TASKS.SORT_TITLE}</option>
             </select>
           </div>
 
           <div className="filter-group">
-            <label>Thứ tự:</label>
+            <label>{MESSAGES.TASKS.SORT_ORDER_LABEL}</label>
             <select
               value={sortOrder}
               onChange={e => setSortOrder(e.target.value)}
               className="filter-select"
             >
-              <option value="desc">Giảm dần</option>
-              <option value="asc">Tăng dần</option>
+              <option value="desc">{MESSAGES.TASKS.SORT_DESC}</option>
+              <option value="asc">{MESSAGES.TASKS.SORT_ASC}</option>
             </select>
           </div>
 
@@ -295,9 +293,9 @@ export default function TaskManagement({ user }) {
           <button
             className="clear-filters-btn"
             onClick={clearFilters}
-            title="Xóa tất cả bộ lọc"
+            title={MESSAGES.TASKS.CLEAR_FILTERS}
           >
-            🗑️ Xóa bộ lọc
+            {MESSAGES.TASKS.CLEAR_FILTERS}
           </button>
         </div>
       </div>
@@ -306,25 +304,25 @@ export default function TaskManagement({ user }) {
       {tasks.length > 0 && (
         <div className="task-stats">
           <div className="stat-item">
-            <span className="stat-label">Todo:</span>
+            <span className="stat-label">{MESSAGES.TASKS.STATUS_TODO}:</span>
             <span className="stat-value todo">
               {tasks.filter(t => t.status === 'todo').length}
             </span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">Đang làm:</span>
+            <span className="stat-label">{MESSAGES.TASKS.STATUS_IN_PROGRESS}:</span>
             <span className="stat-value in-progress">
               {tasks.filter(t => t.status === 'in-progress').length}
             </span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">Hoàn thành:</span>
+            <span className="stat-label">{MESSAGES.TASKS.STATUS_COMPLETED}:</span>
             <span className="stat-value completed">
               {tasks.filter(t => t.status === 'completed').length}
             </span>
           </div>
           <div className="stat-item progress-stat">
-            <span className="stat-label">Tiến độ:</span>
+            <span className="stat-label">{MESSAGES.TASKS.PROGRESS_LABEL}</span>
             <span className="stat-value">
               {Math.round(
                 (tasks.filter(t => t.status === 'completed').length / tasks.length) * 100
@@ -336,7 +334,7 @@ export default function TaskManagement({ user }) {
 
       <div ref={taskListRef}>
         <TaskList
-          tasks={filteredAndSortedTasks}
+          tasks={taskList}
           isLoading={isLoading}
           error={null}
           onEditTask={t => {
