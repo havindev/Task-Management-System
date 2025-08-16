@@ -14,7 +14,7 @@ export default function DataInfo() {
         <button
           onClick={() => setShowInfo(true)}
           style={{
-            background: '#f39c12',
+            background: '#28a745',
             color: 'white',
             border: 'none',
             borderRadius: '50%',
@@ -36,8 +36,8 @@ export default function DataInfo() {
       position: 'fixed',
       top: '10px',
       right: '10px',
-      background: '#fff3cd',
-      border: '1px solid #ffeaa7',
+      background: '#d4edda',
+      border: '1px solid #c3e6cb',
       borderRadius: '8px',
       padding: '15px',
       maxWidth: '300px',
@@ -46,12 +46,12 @@ export default function DataInfo() {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>
-            📱 Lưu ý về dữ liệu
+          <h4 style={{ margin: '0 0 10px 0', color: '#28a745' }}>
+            🔄 Đồng bộ dữ liệu
           </h4>
-          <p style={{ margin: '0', fontSize: '14px', color: '#856404' }}>
-            Dữ liệu tasks được lưu trên <strong>thiết bị này</strong>. 
-            Thiết bị khác sẽ có dữ liệu riêng.
+          <p style={{ margin: '0', fontSize: '14px', color: '#155724' }}>
+            Dữ liệu tasks được <strong>đồng bộ</strong> giữa các thiết bị.
+            Đăng nhập cùng tài khoản để xem tasks.
           </p>
         </div>
         <button
@@ -61,7 +61,7 @@ export default function DataInfo() {
             border: 'none',
             fontSize: '18px',
             cursor: 'pointer',
-            color: '#856404'
+            color: '#155724'
           }}
         >
           ×
