@@ -45,12 +45,7 @@ export const authAPI = {
   },
 
   logout: async () => {
-    try {
-      return { success: true };
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    }
+    return { success: true };
   },
 
   verifySession: async (userId, token) => {
