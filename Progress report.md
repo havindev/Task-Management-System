@@ -1,10 +1,10 @@
 # Progress Report - Task Management System
 
 ## Thông tin chung
-- **Học viên**: [Tên học viên]
+- **Học viên**: Nguyễn Trần Trung Hiếu
 - **Thời gian thực hiện**: 14 ngày (2 tuần)
-- **Ngày bắt đầu**: [Ngày bắt đầu]
-- **Ngày hoàn thành**: [Ngày hoàn thành]
+- **Ngày bắt đầu**: 2/8/2025
+- **Ngày hoàn thành**: 16/08/2025
 - **Advance Feature đã chọn**: Option A - Search và Filter System
 
 ## Tóm tắt dự án
@@ -318,4 +318,3 @@ Project Task Management System đã successfully implement tất cả requiremen
 5. **Project Management**: Planning, execution, và delivery
 
 Dự án demonstrate comprehensive understanding của React ecosystem và modern web development practices. Code quality cao, well-documented, và ready for production deployment.
-
