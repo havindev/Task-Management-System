@@ -3,7 +3,7 @@ export const TRIM = v => (typeof v === 'string' ? v.trim() : v);
 export const isEmpty = v =>
   v === undefined || v === null || String(v).trim() === '';
 
-/** Chuẩn hoá tất cả string trong object (trim) */
+// Trim all strings in object
 export const trimStrings = (obj = {}) => {
   const out = {};
   for (const k in obj) {
