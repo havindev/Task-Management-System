@@ -6,7 +6,7 @@ export default function TaskItem({ task, onEdit, onDelete, highlightText, search
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Bạn có chắc muốn xóa task "${task.title}"?`)) {
+    if(window.confirm(`Bạn có chắc muốn xóa task "${task.title}"?`)) {
       onDelete(task.id);
     }
   };
