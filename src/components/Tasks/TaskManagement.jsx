@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
 import ErrorMessage from '../Common/ErrorMessage';
-import { taskAPI } from '../../api/taskAPI';
+import { vercelAPI } from '../../api/vercelAPI';
 import { MESSAGES } from '../../constants/messages';
+import { migrateLocalStorageToAPI } from '../../utils/dataMigration';
 import '../../style/TaskManagement.css';
 
 
@@ -110,8 +111,18 @@ export default function TaskManagement({ user }) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await taskAPI.getAllTasks(user.id);
+      const data = await vercelAPI.getAllTasks(user.id);
       setTasks(data);
+      
+      // Auto-migration: if no tasks found, try migrating from localStorage
+      if (data.length === 0) {
+        const migrated = await migrateLocalStorageToAPI(vercelAPI, user.id);
+        if (migrated) {
+          // Reload tasks after migration
+          const newData = await vercelAPI.getAllTasks(user.id);
+          setTasks(newData);
+        }
+      }
     } catch (err) {
       // TODO: Better error handling here
       setError(err.message || 'Không thể tải danh sách tasks.');
@@ -128,7 +139,7 @@ export default function TaskManagement({ user }) {
   const createTask = async taskData => {
     setIsFormLoading(true);
     try {
-      const created = await taskAPI.createTask(taskData, user.id);
+      const created = await vercelAPI.createTask(taskData, user.id);
       setTasks(prev => [created, ...prev]);
       setShowTaskForm(false);
       setEditingTask(null);
@@ -145,7 +156,7 @@ export default function TaskManagement({ user }) {
     if(!taskData.id) throw new Error('Thiếu id của task cần cập nhật');
     setIsFormLoading(true);
     try {
-      const updated = await taskAPI.updateTask(taskData.id, taskData);
+      const updated = await vercelAPI.updateTask(taskData.id, taskData);
       setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
       setShowTaskForm(false);
       setEditingTask(null);
@@ -162,7 +173,7 @@ export default function TaskManagement({ user }) {
     const snapshot = tasks;
     setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
-      await taskAPI.deleteTask(taskId);
+      await vercelAPI.deleteTask(taskId);
     } catch (err) {
       setTasks(snapshot);
       setError(err.message || 'Không thể xóa task. Vui lòng thử lại.');
