@@ -8,7 +8,7 @@ import { migrateLocalStorageToAPI } from '../../utils/dataMigration';
 import '../../style/TaskManagement.css';
 
 
-// Hook để debounce search input - tránh call API liên tục
+// debounce hook
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -25,13 +25,13 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// Component chính để quản lý tasks
+// main task comp
 export default function TaskManagement({ user }) {
   const [tasks,setTasks] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading,setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showTaskForm,setShowTaskForm] = useState(false);
   const [editingTask,setEditingTask] = useState(null);
   const [isFormLoading, setIsFormLoading] = useState(false);
 
@@ -107,7 +107,6 @@ export default function TaskManagement({ user }) {
   };
 
   const loadTasks = useCallback(async () => {
-    // console.log('Loading tasks for user:', user.id); // debug
     setIsLoading(true);
     setError(null);
     try {
@@ -124,7 +123,7 @@ export default function TaskManagement({ user }) {
         }
       }
     } catch (err) {
-      // TODO: Better error handling here
+      // handle error
       setError(err.message || 'Không thể tải danh sách tasks.');
     } finally {
       setIsLoading(false);
@@ -182,7 +181,6 @@ export default function TaskManagement({ user }) {
   };
 
   const handleTaskSave = async data => {
-    // console.log('Saving task:', data); // for debugging
     if(editingTask) await updateTask(data);
     else await createTask(data);
   };
