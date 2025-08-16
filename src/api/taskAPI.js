@@ -6,7 +6,6 @@ initializeMockData();
 export const taskAPI = {
   getAllTasks: async (userId) => {
     try {
-      console.log('🔄 Using localStorage for tasks');
       let tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       
       // Filter by userId if provided
@@ -16,7 +15,6 @@ export const taskAPI = {
 
       return tasks.sort((a, b) => new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt));
     } catch (error) {
-      console.error('Get all tasks error:', error);
       return [];
     }
   },
@@ -32,14 +30,12 @@ export const taskAPI = {
 
       return task;
     } catch (error) {
-      console.error('Get task by ID error:', error);
       throw error;
     }
   },
 
   createTask: async (taskData, userId) => {
     try {
-      console.log('🔄 Creating task in localStorage');
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       
       const newTask = {
@@ -55,14 +51,12 @@ export const taskAPI = {
       
       return newTask;
     } catch (error) {
-      console.error('Create task error:', error);
       throw new Error('Không thể tạo task. Vui lòng thử lại.');
     }
   },
 
   updateTask: async (taskId, taskData) => {
     try {
-      console.log('🔄 Updating task in localStorage');
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       const taskIndex = tasks.findIndex(task => task.id === taskId);
       
@@ -81,14 +75,12 @@ export const taskAPI = {
       
       return updatedTask;
     } catch (error) {
-      console.error('Update task error:', error);
       throw new Error('Không thể cập nhật task. Vui lòng thử lại.');
     }
   },
 
   deleteTask: async (taskId) => {
     try {
-      console.log('🔄 Deleting task from localStorage');
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
       const taskIndex = tasks.findIndex(task => task.id === taskId);
       
@@ -101,7 +93,6 @@ export const taskAPI = {
       
       return { success: true, id: taskId };
     } catch (error) {
-      console.error('Delete task error:', error);
       throw new Error('Không thể xóa task. Vui lòng thử lại.');
     }
   },
@@ -110,7 +101,6 @@ export const taskAPI = {
     try {
       return await taskAPI.updateTask(taskId, { status });
     } catch (error) {
-      console.error('Update task status error:', error);
       throw new Error('Không thể cập nhật trạng thái task.');
     }
   },
@@ -120,7 +110,6 @@ export const taskAPI = {
       const allTasks = await taskAPI.getAllTasks(userId);
       return allTasks.filter(task => task.status === status);
     } catch (error) {
-      console.error('Get tasks by status error:', error);
       throw error;
     }
   },
@@ -130,7 +119,6 @@ export const taskAPI = {
       const allTasks = await taskAPI.getAllTasks(userId);
       return allTasks.filter(task => task.priority === priority);
     } catch (error) {
-      console.error('Get tasks by priority error:', error);
       throw error;
     }
   },
@@ -147,7 +135,6 @@ export const taskAPI = {
         task.description?.toLowerCase().includes(searchLower)
       );
     } catch (error) {
-      console.error('Search tasks error:', error);
       throw error;
     }
   },
@@ -173,7 +160,6 @@ export const taskAPI = {
 
       return stats;
     } catch (error) {
-      console.error('Get task statistics error:', error);
       throw error;
     }
   },
@@ -184,24 +170,10 @@ export const taskAPI = {
       await Promise.all(promises);
       return { success: true, updated: taskIds.length };
     } catch (error) {
-      console.error('Bulk update tasks error:', error);
       throw error;
     }
   }
 };
 
-export const {
-  getAllTasks,
-  getTaskById,
-  createTask,
-  updateTask,
-  deleteTask,
-  updateTaskStatus,
-  getTasksByStatus,
-  getTasksByPriority,
-  searchTasks,
-  getTaskStatistics,
-  bulkUpdateTasks
-} = taskAPI;
 
 export default taskAPI;
