@@ -17,7 +17,7 @@ export const ThemeProvider = ({ children }) => {
 
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
 
@@ -42,7 +42,7 @@ export const ThemeProvider = ({ children }) => {
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (!context) {
+  if(!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
