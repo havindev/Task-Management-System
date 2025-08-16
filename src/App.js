@@ -5,7 +5,7 @@ import LoginForm from './components/Auth/LoginForm';
 import TaskManagement from './components/Tasks/TaskManagement';
 import ErrorMessage from './components/Common/ErrorMessage';
 import DataInfo from './components/Common/DataInfo';
-import { authAPI } from './api/authAPI';
+import { vercelAPI } from './api/vercelAPI';
 import { MESSAGES } from './constants/messages';
 import './style/App.css';
 
@@ -33,7 +33,7 @@ function App() {
         );
 
         const isValidSession = await Promise.race([
-          verifySession(userData.id, savedToken),
+          vercelAPI.verifySession(userData.id),
           timeoutPromise
         ]);
 
@@ -56,14 +56,6 @@ function App() {
   }, [checkExistingAuth]);
 
 
-  // TODO: Add better session validation
-  const verifySession = async (userId, token) => {
-    try {
-      return await authAPI.verifySession(userId, token);
-    } catch (error) {
-      return false;
-    }
-  };
 
   const clearAuthData = () => {
     localStorage.removeItem('taskapp_user');
@@ -74,7 +66,7 @@ function App() {
 
   const handleLogin = async credentials => {
     try {
-      const { user, token } = await authAPI.login(credentials);
+      const { user, token } = await vercelAPI.login(credentials);
 
       // Store auth data
       localStorage.setItem('taskapp_user', JSON.stringify(user));
@@ -91,7 +83,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await authAPI.logout();
+      await vercelAPI.logout();
 
       clearAuthData();
 
