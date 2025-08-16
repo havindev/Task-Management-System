@@ -1,22 +1,17 @@
 import { initializeMockData, STORAGE_KEYS } from '../data/mockData';
 
-// Initialize mock data on import
 initializeMockData();
 
 export const authAPI = {
   login: async (credentials) => {
     try {
-      console.log('🔄 Login function started');
-      console.log('🔍 Credentials:', credentials);
+      // console.log('Login attempt for:', credentials.username);
       
-      // Ensure localStorage is available
       if (typeof localStorage === 'undefined') {
         throw new Error('localStorage is not available');
       }
       
-      console.log('🔄 Using localStorage for auth');
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-      console.log('👥 Users found:', users.length);
       
       const foundUser = users.find(
         user =>
@@ -39,7 +34,6 @@ export const authAPI = {
         token
       };
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     }
   },
@@ -53,7 +47,6 @@ export const authAPI = {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
       return users.some(user => user.id === userId);
     } catch (error) {
-      console.error('Session verification error:', error);
       return false;
     }
   },
@@ -74,7 +67,6 @@ export const authAPI = {
         createdAt: user.createdAt
       };
     } catch (error) {
-      console.error('Get user profile error:', error);
       throw error;
     }
   },
@@ -83,15 +75,13 @@ export const authAPI = {
     try {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
       
-      // Check if username exists
       const existingUser = users.find(u => u.username === userData.username);
-      if (existingUser) {
+      if(existingUser) {
         throw new Error('Username đã tồn tại');
       }
 
-      // Check if email exists
       const existingEmail = users.find(u => u.email === userData.email);
-      if (existingEmail) {
+      if(existingEmail) {
         throw new Error('Email đã tồn tại');
       }
 
@@ -117,12 +107,9 @@ export const authAPI = {
         token
       };
     } catch (error) {
-      console.error('Register error:', error);
       throw error;
     }
   }
 };
-
-export const { login, logout, verifySession, getUserProfile, register } = authAPI;
 
 export default authAPI;
