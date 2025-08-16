@@ -8,14 +8,14 @@ import { vercelAPI } from './api/vercelAPI';
 import { MESSAGES } from './constants/messages';
 import './style/App.css';
 
-// Main App component - handles auth and routing
+// Main app comp
 function App() {
   const [user,setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn,setIsLoggedIn] = useState(false);
   const [authLoading,setAuthLoading] = useState(true);
   const [globalError, setGlobalError] = useState(null);
 
-  // Check if user is already logged in
+  // check existing auth
   const checkExistingAuth = useCallback(async () => {
     setAuthLoading(true);
 
@@ -26,7 +26,7 @@ function App() {
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
 
-        // Timeout after 3 seconds for faster loading
+        // timeout for performance
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Timeout')), 3000)
         );
