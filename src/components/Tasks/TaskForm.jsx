@@ -47,11 +47,11 @@ export default function TaskForm({ task = null, onSave, onCancel, isLoading = fa
     fieldRefs[name]?.current?.focus();
   };
 
-  const handleInputChange = e => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-    if (submitError) setSubmitError('');
+    if(errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    if(submitError) setSubmitError('');
   };
 
   const handleInputBlur = e => {
