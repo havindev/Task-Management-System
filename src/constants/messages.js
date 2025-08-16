@@ -1,6 +1,4 @@
-/**
- * Application text constants for internationalization and consistency
- */
+// Text constants for the app
 
 export const MESSAGES = {
   // Authentication
