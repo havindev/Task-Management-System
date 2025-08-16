@@ -51,6 +51,7 @@ export default function LoginForm({ onLogin, isLoading = false }) {
     try {
       await onLogin(data);
     } catch (error) {
+      // TODO: Better error message handling
       setSubmitError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       usernameRef.current?.focus();
     }
