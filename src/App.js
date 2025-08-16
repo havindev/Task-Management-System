@@ -1,37 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Auth/Navbar';
 import LoginForm from './components/Auth/LoginForm';
 import TaskManagement from './components/Tasks/TaskManagement';
 import ErrorMessage from './components/Common/ErrorMessage';
 import { authAPI } from './api/authAPI';
+import { MESSAGES } from './constants/messages';
 import './style/App.css';
 
+// Main App component - handles auth and routing
 function App() {
-
-  const [user, setUser] = useState(null);
+  const [user,setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading,setAuthLoading] = useState(true);
   const [globalError, setGlobalError] = useState(null);
 
-
-  useEffect(() => {
-    checkExistingAuth();
-  }, []);
-
-
-  const checkExistingAuth = async () => {
-    console.log('🔍 Starting auth check...');
+  // Check if user is already logged in
+  const checkExistingAuth = useCallback(async () => {
     setAuthLoading(true);
 
     try {
       const savedUser = localStorage.getItem('taskapp_user');
       const savedToken = localStorage.getItem('taskapp_token');
-      console.log('💾 Saved auth data:', { hasUser: !!savedUser, hasToken: !!savedToken });
 
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
-        console.log('👤 User data:', userData);
 
         // Timeout after 3 seconds for faster loading
         const timeoutPromise = new Promise((_, reject) => 
@@ -43,28 +36,26 @@ function App() {
           timeoutPromise
         ]);
 
-        console.log('✅ Session valid:', isValidSession);
-
         if (isValidSession) {
           setUser(userData);
           setIsLoggedIn(true);
         } else {
-          console.log('❌ Session invalid, clearing auth');
           clearAuthData();
         }
-      } else {
-        console.log('🚫 No saved auth data');
       }
     } catch (error) {
-      console.error('❗ Auth check error:', error);
       clearAuthData();
     } finally {
-      console.log('✨ Auth check completed');
       setAuthLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkExistingAuth();
+  }, [checkExistingAuth]);
 
 
+  // TODO: Add better session validation
   const verifySession = async (userId, token) => {
     try {
       return await authAPI.verifySession(userId, token);
@@ -84,6 +75,7 @@ function App() {
     try {
       const { user, token } = await authAPI.login(credentials);
 
+      // Store auth data
       localStorage.setItem('taskapp_user', JSON.stringify(user));
       localStorage.setItem('taskapp_token', token);
 
@@ -92,7 +84,6 @@ function App() {
 
       setGlobalError(null);
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     }
   };
@@ -105,22 +96,15 @@ function App() {
 
       setGlobalError(null);
     } catch (error) {
-      console.error('Logout error:', error);
       setGlobalError('Có lỗi khi đăng xuất. Vui lòng thử lại.');
     }
   };
 
-  const handleGlobalError = error => {
-    setGlobalError(error);
 
-    setTimeout(() => setGlobalError(null), 5000);
-  };
-
-  void handleGlobalError;
 
   useEffect(() => {
     const handleOnline = () => {
-      if (globalError && globalError.includes('mạng')) {
+      if(globalError && globalError.includes('mạng')) {
         setGlobalError(null);
       }
     };
@@ -129,6 +113,7 @@ function App() {
       setGlobalError('Mất kết nối mạng. Vui lòng kiểm tra kết nối internet.');
     };
 
+    // Listen for network changes
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -170,25 +155,25 @@ function App() {
             <div className="login-container">
               <div className="login-welcome">
                 <div className="welcome-logo">📝</div>
-                <h1>Chào mừng đến với Task Manager</h1>
-                <p>Quản lý công việc hiệu quả và dễ dàng</p>
+                <h1>{MESSAGES.WELCOME.TITLE}</h1>
+                <p>{MESSAGES.WELCOME.SUBTITLE}</p>
 
                 <div className="features-list">
                   <div className="feature-item">
                     <span className="feature-icon">✅</span>
-                    <span>Tạo và quản lý tasks</span>
+                    <span>{MESSAGES.WELCOME.FEATURE_MANAGE}</span>
                   </div>
                   <div className="feature-item">
                     <span className="feature-icon">🎯</span>
-                    <span>Ưu tiên và deadline</span>
+                    <span>{MESSAGES.WELCOME.FEATURE_PRIORITY}</span>
                   </div>
                   <div className="feature-item">
                     <span className="feature-icon">📊</span>
-                    <span>Theo dõi tiến độ</span>
+                    <span>{MESSAGES.WELCOME.FEATURE_PROGRESS}</span>
                   </div>
                   <div className="feature-item">
                     <span className="feature-icon">🔍</span>
-                    <span>Tìm kiếm và lọc</span>
+                    <span>{MESSAGES.WELCOME.FEATURE_SEARCH}</span>
                   </div>
                 </div>
               </div>
@@ -199,7 +184,7 @@ function App() {
         </main>
 
         <footer className="app-footer">
-          <p>&copy; Cảm ơn vì đã đến! :D</p>
+          <p>{MESSAGES.COMMON.FOOTER_TEXT}</p>
         </footer>
       </div>
     </ThemeProvider>
