@@ -4,7 +4,6 @@ import Navbar from './components/Auth/Navbar';
 import LoginForm from './components/Auth/LoginForm';
 import TaskManagement from './components/Tasks/TaskManagement';
 import ErrorMessage from './components/Common/ErrorMessage';
-import DataInfo from './components/Common/DataInfo';
 import { vercelAPI } from './api/vercelAPI';
 import { MESSAGES } from './constants/messages';
 import './style/App.css';
@@ -132,7 +131,6 @@ function App() {
   return (
     <ThemeProvider>
       <div className="app">
-        <DataInfo />
         {globalError && (
           <div className="global-error">
             <ErrorMessage
